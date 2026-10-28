@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 its_giving.py — meme reactions on top of your face, live in Zoom / Meet.
-
+well this is awakward
 MediaPipe tracks your face, hands and upper body; when a pose matches, the
 matching image or GIF is pasted over your face and the frame goes out through a
 virtual camera. See README.md.
