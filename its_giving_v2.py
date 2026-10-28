@@ -26,6 +26,15 @@ import mediapipe as mp
 from mediapipe.tasks import python as mp_tasks
 from mediapipe.tasks.python import vision
 
+# Windows consoles often default to a legacy code page; don't crash on printing.
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+IS_WINDOWS = platform.system() == "Windows"
+
 POSES = ["time_out", "heart", "cover_nose", "crashing_out", "dance", "nose_closed", "flirty", "hand_up",
          "tongue_out", "open_mouth", "disgusted", "talking_to_wall", "suspicious", "spin"]
 TEST_KEYS = "1234567890-=[]"
@@ -116,10 +125,8 @@ def preflight(model_path):
     print(f"\nMediaPipe cannot start a detector here (python {platform.python_version()}, "
           f"mediapipe {getattr(mp, '__version__', '?')}, exit {proc.returncode}).\n")
     if "Service is unavailable" in err or "MetalHelper" in err or proc.returncode == -6:
-        print("Cause: mediapipe 0.10.30+ ships macOS wheels that abort on startup.\n"
-              "Fix (Python 3.11 or 3.12) — install the pinned set:\n"
-              "  pip install -r requirements.txt\n"
-              "If you already installed something newer by hand, force it back:\n"
+        print("Cause: some older macOS builds of mediapipe abort on startup.\n"
+              "Fallback (macOS only, Python 3.11 or 3.12) - install the older known-good set:\n"
               '  pip install "mediapipe==0.10.21" "numpy<2" "opencv-python<5" "opencv-contrib-python<5"\n')
     else:
         print(err[-1500:])
@@ -174,14 +181,14 @@ class Baseline:
         return self.mean.get("turn_signed", 0.0) if not self.generic else 0.0
 
     def save(self, path):
-        with open(path, "w") as fh:
+        with open(path, "w", encoding="utf-8") as fh:
             json.dump({"version": CALIB_VERSION, "made": self.made, "samples": self.samples,
                        "mean": self.mean, "sigma": self.sigma}, fh, indent=1, sort_keys=True)
 
     @staticmethod
     def load(path):
         try:
-            with open(path) as fh:
+            with open(path, encoding="utf-8") as fh:
                 data = json.load(fh)
         except (OSError, ValueError):
             return Baseline()
@@ -584,7 +591,7 @@ def draw_hud(img, shown, raw, d, face, hands, body, base):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--camera", type=int, default=0, help="webcam index (try 1 if 0 is your iPhone)")
+    ap.add_argument("--camera", type=int, default=0, help="webcam index (try 1 if 0 is the wrong camera, e.g. your phone or a virtual cam)")
     ap.add_argument("--calibrate", action="store_true", help="learn your neutral face, save it, and exit")
     ap.add_argument("--no-calibration", action="store_true", help="ignore calibration.json; use the generic baseline")
     ap.add_argument("--no-vcam", action="store_true", help="preview only; don't start the virtual camera")
@@ -603,7 +610,10 @@ def main():
     if not args.skip_check:
         preflight(model_paths["face_landmarker.task"])
 
-    cap = cv2.VideoCapture(args.camera)
+    cap = cv2.VideoCapture(args.camera, cv2.CAP_DSHOW) if IS_WINDOWS else cv2.VideoCapture(args.camera)
+    if IS_WINDOWS and not cap.isOpened():
+        cap.release()
+        cap = cv2.VideoCapture(args.camera)  # fall back to the default backend
     if cap.isOpened() and "x" in args.size:
         w, h = args.size.lower().split("x")
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, int(w))
@@ -617,7 +627,9 @@ def main():
     if not ok:
         sys.exit(f"Could not read from camera {args.camera}.\n"
                  "  - try --camera 1\n"
-                 "  - System Settings > Privacy & Security > Camera: allow your terminal app, then re-run")
+                 "  - Windows: Settings > Privacy & security > Camera > let desktop apps access your camera\n"
+                 "  - macOS: System Settings > Privacy & Security > Camera: allow your terminal app\n"
+                 "  - close any other app using the camera (Zoom, Teams, OBS preview), then re-run")
     H, W = frame.shape[:2]
     print(f"Camera {args.camera}: {W}x{H}")
 

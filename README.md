@@ -14,7 +14,7 @@ add more memes to your heart's desire.
 Point Zoom at its virtual camera and the whole call sees it.
 
 ```bash
-python its_giving.py              # preview + virtual camera
+python its_giving.py              # preview + virtual camera  (Windows: py its_giving.py)
 python its_giving.py --no-vcam    # preview only
 ```
 
@@ -30,21 +30,32 @@ guessed.
 
 ## Setup
 
-```bash
-python3.12 -m venv venv
-source venv/bin/activate           # Windows: venv\Scripts\activate
+**Windows (PowerShell or Command Prompt)**
+
+```bat
+py -3.12 -m venv venv
+venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-Python 3.11 or 3.12. Three MediaPipe models (~15 MB) download themselves on
-first run.
+If PowerShell blocks the activate script, run
+`Set-ExecutionPolicy -Scope Process Bypass` first (affects only that window).
 
-**Don't unpin the dependencies.** MediaPipe 0.10.30+ (including 1.0.x) ships
-macOS wheels that abort the moment they open a detector, so it's held at
-0.10.21. That build needs NumPy 1.x, and OpenCV 5 needs NumPy 2 — and 0.10.21
-asks for an *unpinned* `opencv-contrib-python`, which quietly drags OpenCV 5 and
-therefore NumPy 2 back in. That's why the OpenCV pins are in there even though
-nothing in the code cares. Unpin one and you have to unpin all three.
+**macOS / Linux**
+
+```bash
+python3.12 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+Python 3.12 or newer. Three MediaPipe models (~15 MB) download themselves on
+first run (they're already included in `models/`).
+
+Requirements are now the latest releases (mediapipe 1.2, NumPy 2.5, OpenCV 5).
+The old pins existed to work around macOS crashes in mediapipe 0.10.30+; that is
+no longer needed. If you are on macOS and it still aborts on startup, the
+fallback pins are in the comments of `requirements.txt`.
 
 ---
 
@@ -74,7 +85,7 @@ treat it as a normal webcam.
 | OS | do this |
 |---|---|
 | macOS | install [OBS Studio](https://obsproject.com), open it once, quit it |
-| Windows | install OBS Studio, or run its virtual-camera installer |
+| Windows | install [OBS Studio](https://obsproject.com), open it once, click *Start Virtual Camera* once, then close it |
 | Linux | `sudo apt install v4l2loopback-dkms` then `sudo modprobe v4l2loopback` |
 
 **2. Run it.** It prints the device it's publishing to:
