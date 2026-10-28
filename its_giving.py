@@ -10,13 +10,7 @@ virtual camera. See README.md.
 
 Keys:  q quit   d toggle HUD   1-9 0 - = [ ] force-show a pose
 """
-import argparse
-import os
-import platform
-import subprocess
-import sys
-import time
-import urllib.request
+
 
 import cv2
 import numpy as np
